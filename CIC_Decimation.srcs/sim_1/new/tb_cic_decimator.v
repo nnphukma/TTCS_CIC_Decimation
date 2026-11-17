@@ -13,14 +13,10 @@ module tb_cic_decimator();
     wire valid_out;
     wire signed [W_OUT-1:0] data_out;
 
-    // Khai báo mảng lưu dữ liệu
     reg [W_IN-1:0] stimulus_mem [0:NUM_SAMPLES-1];
     reg [W_OUT-1:0] expected_mem [0:NUM_SAMPLES-1];
 
-    // Khởi tạo module (Đảm bảo gọi đúng tên top module của bạn)
-    cic_decimator #(
-        .N(N), .R(R), .W_IN(W_IN), .W_OUT(W_OUT)
-    ) uut (
+    cic_decimator #(.N(N), .R(R), .W_IN(W_IN), .W_OUT(W_OUT)) uut (
         .clk(clk), .rst_n(rst_n), .valid_in(valid_in), .data_in(data_in),
         .valid_out(valid_out), .data_out(data_out)
     );
@@ -28,7 +24,6 @@ module tb_cic_decimator();
     always #5 clk = ~clk;
 
     initial begin
-        // ĐỌC FILE MEM
         $readmemh("D:/Documents/KMA/TTCS1/CIC_Decimation/stimulus.mem", stimulus_mem);
         $readmemh("D:/Documents/KMA/TTCS1/CIC_Decimation/expected.mem", expected_mem);
     end
@@ -46,18 +41,18 @@ module tb_cic_decimator();
         
         $display("=== BAT DAU MO PHONG TONG THE CIC ===");
 
-        // Cấp dữ liệu đầu vào
+        // Cấp dữ liệu liên tục
         for (i = 0; i < NUM_SAMPLES; i = i + 1) begin
             @(posedge clk);
             valid_in = 1;
             data_in = stimulus_mem[i]; 
-            @(posedge clk);
-            valid_in = 0;
-            #10;
         end
 
-        // Chờ cho các mẫu cuối cùng ra khỏi pipeline
-        repeat (20) @(posedge clk);
+        @(posedge clk);
+        valid_in = 0;
+        
+        // Chờ đủ lâu để 5000 mẫu đi hết pipeline
+        repeat (1000) @(posedge clk);
         
         $display("=== KET THUC MO PHONG ===");
         $display("Tong so mau dau ra: %d", out_idx);
@@ -71,14 +66,11 @@ module tb_cic_decimator();
         $finish;
     end
 
-    // Tự động kiểm tra kết quả
     always @(posedge clk) begin
         if (valid_out && rst_n) begin
             exp_val = expected_mem[out_idx];
-            
             if (data_out !== exp_val) begin
                 error_count = error_count + 1;
-                // Chỉ in 10 lỗi đầu tiên để tránh rác console
                 if (error_count <= 10)
                     $display("LOI TAI MAU %d: Verilog = %d, Ky vong = %d", out_idx, data_out, exp_val);
             end

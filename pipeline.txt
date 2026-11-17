@@ -4,40 +4,40 @@
  Kit: Artix A7 100T (xc7a100tcsg324-1) | Tool: Vivado 2025
 ========================================================================
 
-[ ] BƯỚC 0 - CHUẨN BỊ MÔI TRƯỜNG (0.5 ngày)
-    - Tạo RTL Project trong Vivado 2025, part xc7a100tcsg324-1
+[X] BƯỚC 0 - CHUẨN BỊ MÔI TRƯỜNG (0.5 ngày)
+    - Tạo RTL Project trong Vivado 2025, part xc7a100tcsg324-1 -> Hoàn thành
     - Xác nhận XSim hoạt động (chạy 1 testbench "hello world")
     - Cài Python + NumPy + SciPy (golden model)
     - Cài Git để quản lý source
-    - [ ] Hoàn thành bước 0
+    - [X] Hoàn thành bước 0
 
 ------------------------------------------------------------------------
 
-[ ] BƯỚC 1 - GOLDEN MODEL PYTHON (1 tuần)
-    - [ ] 1a. Mô hình floating-point: integrator -> decimate -> comb
-    - [ ] 1b. Vẽ đáp ứng tần số (FFT/freqz), xác nhận null tại k*Fs_out/M
-    - [ ] 1c. Xác nhận độ lợi (R*M)^N và stopband attenuation
-    - [ ] 1d. Mô hình fixed-point bit-accurate (đúng số bit, đúng cắt bit)
-    - [ ] 1e. Sinh file stimulus (.mem/.txt) và expected output
-    - [ ] 1f. Đánh giá SNR/SFDR/ENOB sau khi cắt bit
-    - [ ] Hoàn thành bước 1
+[X] BƯỚC 1 - GOLDEN MODEL PYTHON (1 tuần)
+    - [X] 1a. Mô hình floating-point: integrator -> decimate -> comb
+    - [X] 1b. Vẽ đáp ứng tần số (FFT/freqz), xác nhận null tại k*Fs_out/M
+    - [X] 1c. Xác nhận độ lợi (R*M)^N và stopband attenuation
+    - [X] 1d. Mô hình fixed-point bit-accurate (đúng số bit, đúng cắt bit)
+    - [X] 1e. Sinh file stimulus (.mem/.txt) và expected output
+    - [X] 1f. Đánh giá SNR/SFDR/ENOB sau khi cắt bit
+    - [X] Hoàn thành bước 1
 
 ------------------------------------------------------------------------
 
-[ ] BƯỚC 2 - THIẾT KẾ KIẾN TRÚC TRÊN GIẤY (1-2 ngày)
-    - [ ] 2a. Sơ đồ khối: N integrator -> decimator(R) -> N comb
-    - [ ] 2b. Bảng độ rộng bit tại mỗi điểm nối
-    - [ ] 2c. Bảng cắt bit Hogenauer: d_k cho từng tầng
-    - [ ] 2d. Định nghĩa giao diện module (clk, rst, data_in,
+[X] BƯỚC 2 - THIẾT KẾ KIẾN TRÚC TRÊN GIẤY (1-2 ngày)
+    - [X] 2a. Sơ đồ khối: N integrator -> decimator(R) -> N comb
+    - [X] 2b. Bảng độ rộng bit tại mỗi điểm nối
+    - [X] 2c. Bảng cắt bit Hogenauer: d_k cho từng tầng
+    - [X] 2d. Định nghĩa giao diện module (clk, rst, data_in,
            data_in_valid, data_out, data_out_valid)
-    - [ ] 2e. Chốt chiến lược clock-enable (không tạo clock chia tần)
-    - [ ] Hoàn thành bước 2
+    - [X] 2e. Chốt chiến lược clock-enable (không tạo clock chia tần)
+    - [X] Hoàn thành bước 2
 
 ------------------------------------------------------------------------
 
-[ ] BƯỚC 3 - VIẾT RTL BOTTOM-UP (1 tuần)
-    - [ ] 3a. integrator.v + testbench (impulse/ramp/hằng số)
-    - [ ] 3b. comb.v + testbench (impulse -> delta[n]-delta[n-M])
+[X] BƯỚC 3 - VIẾT RTL BOTTOM-UP (1 tuần)
+    - [X] 3a. integrator.v + testbench (impulse/ramp/hằng số)
+    - [X] 3b. comb.v + testbench (impulse -> delta[n]-delta[n-M])
     - [ ] 3c. decimator.v + testbench (đếm modulo R)
     - [ ] 3d. cic_decimator.v (top-level) nối N integrator,
            decimator, N comb, đúng độ rộng bit

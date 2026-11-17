@@ -38,16 +38,16 @@
 [X] BƯỚC 3 - VIẾT RTL BOTTOM-UP (1 tuần)
     - [X] 3a. integrator.v + testbench (impulse/ramp/hằng số)
     - [X] 3b. comb.v + testbench (impulse -> delta[n]-delta[n-M])
-    - [ ] 3c. decimator.v + testbench (đếm modulo R)
-    - [ ] 3d. cic_decimator.v (top-level) nối N integrator,
+    - [X] 3c. decimator.v + testbench (đếm modulo R)
+    - [X] 3d. cic_decimator.v (top-level) nối N integrator,
            decimator, N comb, đúng độ rộng bit
-    - [ ] 3e. Mỗi module PASS unit test trước khi lên tầng trên
-    - [ ] Hoàn thành bước 3
+    - [X] 3e. Mỗi module PASS unit test trước khi lên tầng trên
+    - [X] Hoàn thành bước 3
 
 ------------------------------------------------------------------------
 
 [ ] BƯỚC 4 - CHIẾN LƯỢC TESTBENCH 3 TẦNG (3-4 ngày)
-    - [ ] 4a. Tầng 1: unit test từng module (đã làm ở Bước 3)
+    - [X] 4a. Tầng 1: unit test từng module (đã làm ở Bước 3)
     - [ ] 4b. Tầng 2: integration test - $readmemh stimulus từ Python,
            $fwrite output, so sánh bit-exact với expected
     - [ ] 4c. Tầng 3: đánh giá chất lượng (FFT, SNR, SFDR, null position)

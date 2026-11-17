@@ -61,8 +61,17 @@ module cic_decimator #(
     endgenerate
 
     // 5. Cắt bit (Truncation) để lấy đầu ra W_OUT bit
-    // Lấy W_OUT bit cao nhất của tầng Comb cuối cùng
-    assign valid_out = dec_valid;
-    assign data_out = comb_out[N-1][W_INT-1 : W_INT-W_OUT];
+    assign data_out = comb_out[N-1][W_INT-1 : W_INT-W_OUT]; // Giữ nguyên như cũ
+
+    // THÊM MỚI: Trễ valid_out đi 4 chu kỳ để khớp với độ trễ của 4 tầng Comb
+    reg [3:0] valid_pipe;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            valid_pipe <= 4'b0000;
+        end else begin
+            valid_pipe <= {valid_pipe[2:0], dec_valid};
+        end
+    end
+    assign valid_out = valid_pipe[3];
 
 endmodule

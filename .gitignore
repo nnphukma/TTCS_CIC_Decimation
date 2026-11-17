@@ -1,0 +1,36 @@
+# ==========================================
+# Vivado Generated Files & Folders
+# ==========================================
+*.cache/
+*.hw/
+*.sim/
+*.ip_user_files/
+*.runs/
+
+# Vivado Logs and Journals
+*.jou
+*.log
+*.str
+*.wdb
+*.backup.*
+*.zip
+
+# ==========================================
+# Python & Virtual Environments
+# ==========================================
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# ==========================================
+# User Specific Files (Theo yêu cầu)
+# ==========================================
+CIC_document.docx
+
+# ==========================================
+# OS Generated Files
+# ==========================================
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,84 +1,125 @@
-`timescale 1ns / 1ps
+`timescale 1ns / 1ps 
 
+// CIC decimator: N integrator stages -> decimation by R -> N comb stages.
+// The integrator next-state chain is calculated combinationally so that
+// every input sample contributes to all N integrators in the same sample
+// interval. The comb chain is updated only when an R-th valid input arrives.
 module cic_decimator #(
-    parameter N = 4,       
-    parameter R = 16,      
-    parameter M = 1,       
-    parameter W_IN = 12,   
-    parameter W_OUT = 12   
+    parameter integer N      = 4,
+    parameter integer R      = 16,
+    parameter integer M      = 1,
+    parameter integer W_IN  = 12,
+    parameter integer W_OUT = 12
 )(
-    input  wire clk,
-    input  wire rst_n,
-    input  wire valid_in,
-    input  wire signed [W_IN-1:0] data_in,
-    
-    output wire valid_out,
-    output wire signed [W_OUT-1:0] data_out
+    input  wire                         clk,
+    input  wire                         rst_n,
+    input  wire                         valid_in,
+    input  wire signed [W_IN-1:0]       data_in,
+    output reg                          valid_out,
+    output reg signed [W_OUT-1:0]       data_out
 );
 
-    localparam W_GROWTH = $clog2(R * M) * N; 
-    localparam W_INT = W_IN + W_GROWTH;      
+    // Full-precision CIC growth: N * ceil(log2(R*M)) bits.
+    localparam integer LOG2_RM = (R*M > 1) ? $clog2(R*M) : 0;
+    localparam integer W_GROWTH = N * LOG2_RM;
+    localparam integer W_INT = W_IN + W_GROWTH;
 
-    wire signed [W_INT-1:0] int_out [0:N-1];
-    wire signed [W_INT-1:0] comb_out [0:N-1];
-    wire dec_valid;
+    // Integrator states and their combinational next values.
+    reg  signed [W_INT-1:0] int_state [0:N-1];
+    wire signed [W_INT-1:0] int_next  [0:N-1];
 
-    // 1. Mở rộng dấu (Sign Extension)
-    wire signed [W_INT-1:0] data_in_ext = {{W_GROWTH{data_in[W_IN-1]}}, data_in};
+    // Comb stage input/output and M-sample delay memories.
+    wire signed [W_INT-1:0] comb_stage_in  [0:N-1];
+    wire signed [W_INT-1:0] comb_stage_out [0:N-1];
+    reg  signed [W_INT-1:0] comb_delay [0:(N*M)-1];
 
-    // 2. Chuỗi Integrator
-    integrator #(.W(W_INT)) int_0 (
-        .clk(clk), .rst_n(rst_n), .valid(valid_in), .din(data_in_ext), .dout(int_out[0])
-    );
+    wire signed [W_INT-1:0] data_in_ext;
 
-    genvar i;
+    reg [31:0] decim_count;
+    integer k;
+    integer j;
+
+    // Sign-extend the input to the internal CIC width.
+    assign data_in_ext = {{W_GROWTH{data_in[W_IN-1]}}, data_in};
+
+    // ------------------------------------------------------------
+    // 1. Integrator cascade: calculate all next states for this
+    //    accepted input sample.
+    // ------------------------------------------------------------
+    assign int_next[0] = int_state[0] + data_in_ext;
+
+    genvar gi;
     generate
-        for (i = 1; i < N; i = i + 1) begin : gen_int
-            integrator #(.W(W_INT)) int_inst (
-                .clk(clk), .rst_n(rst_n), .valid(valid_in), .din(int_out[i-1]), .dout(int_out[i])
-            );
+        for (gi = 1; gi < N; gi = gi + 1) begin : GEN_INTEGRATORS
+            assign int_next[gi] = int_state[gi] + int_next[gi-1];
         end
     endgenerate
 
-    // 3. Bộ Decimator
-    decimator #(.R(R)) dec_inst (
-        .clk(clk), .rst_n(rst_n), .valid_in(valid_in), .valid_out(dec_valid)
-    );
+    // ------------------------------------------------------------
+    // 2. Comb cascade. Its input is the final integrator value for
+    //    the current sample, and it is clock-enabled at the decimated
+    //    output rate only.
+    // ------------------------------------------------------------
+    assign comb_stage_in[0] = int_next[N-1];
 
-    // SỬA LỖI TẠI ĐÂY: Trễ dec_valid đi 1 chu kỳ để đợi Integrator cập nhật xong
-    reg dec_valid_d;
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) dec_valid_d <= 0;
-        else dec_valid_d <= dec_valid;
-    end
-
-    // 4. Chuỗi Comb (Sử dụng dec_valid_d thay vì dec_valid)
-    comb #(.W(W_INT), .M(M)) comb_0 (
-        .clk(clk), .rst_n(rst_n), .valid(dec_valid_d), .din(int_out[N-1]), .dout(comb_out[0])
-    );
-
+    genvar gc;
     generate
-        for (i = 1; i < N; i = i + 1) begin : gen_comb
-            comb #(.W(W_INT), .M(M)) comb_inst (
-                .clk(clk), .rst_n(rst_n), .valid(valid_pipe[i-1]), .din(comb_out[i-1]), .dout(comb_out[i])
-            );
+        for (gc = 1; gc < N; gc = gc + 1) begin : GEN_COMB_INPUTS
+            assign comb_stage_in[gc] = comb_stage_out[gc-1];
+        end
+
+        for (gc = 0; gc < N; gc = gc + 1) begin : GEN_COMB_STAGES
+            assign comb_stage_out[gc] =
+                comb_stage_in[gc] - comb_delay[gc*M + M-1];
         end
     endgenerate
 
-    // 5. Cắt bit (Truncation) để lấy đầu ra W_OUT bit
-    assign data_out = comb_out[N-1][W_INT-1 : W_INT-W_OUT]; 
-
-    // 6. Trễ valid_out đi N nhịp (tính từ dec_valid_d)
-    reg [N-1:0] valid_pipe;
+    // ------------------------------------------------------------
+    // 3. Sequential state update and decimation control.
+    // ------------------------------------------------------------
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            valid_pipe <= 0;
-        end else begin
-            valid_pipe <= {valid_pipe[N-2:0], dec_valid_d};
+            decim_count <= 0;
+            valid_out   <= 1'b0;
+            data_out    <= {W_OUT{1'b0}};
+
+            for (k = 0; k < N; k = k + 1)
+                int_state[k] <= {W_INT{1'b0}};
+
+            for (k = 0; k < N*M; k = k + 1)
+                comb_delay[k] <= {W_INT{1'b0}};
+        end
+        else begin
+            // Default: valid_out is a one-clock pulse.
+            valid_out <= 1'b0;
+
+            if (valid_in) begin
+                // Every accepted input sample updates every integrator.
+                for (k = 0; k < N; k = k + 1)
+                    int_state[k] <= int_next[k];
+
+                // Emit one output after every R accepted input samples.
+                if (decim_count == R-1) begin
+                    decim_count <= 0;
+                    valid_out   <= 1'b1;
+
+                    // Keep the W_OUT most-significant bits, matching
+                    // the fixed-point format used by the reference data.
+                    data_out <= comb_stage_out[N-1][W_INT-1 : W_INT-W_OUT];
+
+                    // Update all M-sample comb delay lines once per
+                    // decimated sample.
+                    for (k = 0; k < N; k = k + 1) begin
+                        comb_delay[k*M] <= comb_stage_in[k];
+                        for (j = 1; j < M; j = j + 1)
+                            comb_delay[k*M+j] <= comb_delay[k*M+j-1];
+                    end
+                end
+                else begin
+                    decim_count <= decim_count + 1'b1;
+                end
+            end
         end
     end
-    
-    // valid_out trễ đúng N chu kỳ so với dec_valid_d
-    assign valid_out = valid_pipe[N-1];
 
 endmodule

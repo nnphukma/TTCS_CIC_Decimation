@@ -46,23 +46,22 @@
 
 ------------------------------------------------------------------------
 
-[ ] BƯỚC 4 - CHIẾN LƯỢC TESTBENCH 3 TẦNG (3-4 ngày)
-    - [X] 4a. Tầng 1: unit test từng module (đã làm ở Bước 3)
-    - [ ] 4b. Tầng 2: integration test - $readmemh stimulus từ Python,
-           $fwrite output, so sánh bit-exact với expected
-    - [ ] 4c. Tầng 3: đánh giá chất lượng (FFT, SNR, SFDR, null position)
-    - [ ] 4d. Self-checking testbench ($display + $fatal khi mismatch)
-    - [ ] Hoàn thành bước 4
+[~] BƯỚC 4 - TESTBENCH 3 TẦNG
+    [X] 4a. Unit test từng module
+    [X] 4b. Integration test: đọc MEM và đối chiếu 312 mẫu
+    [X] 4b. Bổ sung fwrite xuất kết quả RTL (nếu chưa có)
+    [ ] 4c. Đánh giá FFT, SNR, SFDR, null position
+    [ ] 4d. Hoàn thiện self-checking với $fatal
+    [ ] Hoàn thành bước 4
 
 ------------------------------------------------------------------------
 
-[ ] BƯỚC 5 - SIMULATION TRONG VIVADO (2-3 ngày)
-    - [ ] 5a. Behavioral Simulation (RTL) - debug logic
-    - [ ] 5b. Post-Synthesis Simulation - kiểm tra synthesis đúng ý
-    - [ ] 5c. Post-Implementation Timing Simulation - phát hiện
-           glitch/race/timing
-    - [ ] 5d. PASS cả 3 cấp mô phỏng
-    - [ ] Hoàn thành bước 5
+[~] BƯỚC 5 - SIMULATION TRONG VIVADO
+    [X] 5a. Behavioral Simulation - PASS
+    [ ] 5b. Post-Synthesis Simulation
+    [ ] 5c. Post-Implementation Timing Simulation
+    [ ] 5d. PASS cả 3 cấp mô phỏng
+    [ ] Hoàn thành bước 5
 
 ------------------------------------------------------------------------
 

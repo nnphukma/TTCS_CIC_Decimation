@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-
+ 
 module tb_cic_decimator;
 
     // Keep these parameters consistent with the generated memory files.
@@ -11,10 +11,11 @@ module tb_cic_decimator;
     localparam integer NUM_SAMPLES = 5000;
     localparam integer NUM_OUTPUTS = NUM_SAMPLES / R;
 
-    // The .mem files are stored beside CIC_Decimation.xpr (project root).
-    // Use absolute paths because XSim runs from its own simulation directory.
+    // The .mem files and output file are stored beside CIC_Decimation.xpr.
+    // Absolute paths are used because XSim runs from its simulation directory.
     localparam STIMULUS_FILE = "D:/Documents/KMA/TTCS1/CIC_Decimation/stimulus.mem";
     localparam EXPECTED_FILE = "D:/Documents/KMA/TTCS1/CIC_Decimation/expected.mem";
+    localparam OUTPUT_FILE   = "D:/Documents/KMA/TTCS1/CIC_Decimation/rtl_output.mem";
 
     reg clk;
     reg rst_n;
@@ -33,6 +34,8 @@ module tb_cic_decimator;
     integer timeout_count;
     integer stimulus_fd;
     integer expected_fd;
+    integer output_fd;
+
     reg signed [W_OUT-1:0] exp_val;
 
     cic_decimator #(
@@ -54,11 +57,17 @@ module tb_cic_decimator;
     initial clk = 1'b0;
     always #5 clk = ~clk;
 
-    // Compare outputs after DUT nonblocking assignments have settled.
+    // Capture and compare outputs after DUT nonblocking assignments settle.
     always @(posedge clk) begin
         if (rst_n) begin
             #1;
             if (valid_out) begin
+                // Export every valid RTL output as 3-digit hexadecimal.
+                // Keep this independent of the comparison result so that
+                // mismatching/unknown samples are also preserved for debug.
+                if (output_fd != 0)
+                    $fwrite(output_fd, "%03h\n", data_out);
+
                 if (out_idx < NUM_OUTPUTS) begin
                     exp_val = expected_mem[out_idx];
 
@@ -96,6 +105,7 @@ module tb_cic_decimator;
         error_count   = 0;
         timeout_count = 0;
         exp_val       = {W_OUT{1'b0}};
+        output_fd     = 0;
 
         $display("===============================================");
         $display("       BAT DAU MO PHONG TONG THE CIC           ");
@@ -103,19 +113,15 @@ module tb_cic_decimator;
         $display(" So mau vao: %0d | So mau ra du kien: %0d", NUM_SAMPLES, NUM_OUTPUTS);
         $display("===============================================");
 
-        // Check that both files exist before calling $readmemh.
+        // Check that input/reference files exist before calling $readmemh.
         stimulus_fd = $fopen(STIMULUS_FILE, "r");
-        if (stimulus_fd == 0) begin
-            $display("FATAL: Khong mo duoc stimulus.mem: %0s", STIMULUS_FILE);
-            $finish;
-        end
+        if (stimulus_fd == 0)
+            $fatal(1, "Khong mo duoc stimulus.mem: %0s", STIMULUS_FILE);
         $fclose(stimulus_fd);
 
         expected_fd = $fopen(EXPECTED_FILE, "r");
-        if (expected_fd == 0) begin
-            $display("FATAL: Khong mo duoc expected.mem: %0s", EXPECTED_FILE);
-            $finish;
-        end
+        if (expected_fd == 0)
+            $fatal(1, "Khong mo duoc expected.mem: %0s", EXPECTED_FILE);
         $fclose(expected_fd);
 
         $readmemh(STIMULUS_FILE, stimulus_mem);
@@ -123,27 +129,30 @@ module tb_cic_decimator;
 
         // Check that all requested memory entries were actually loaded.
         for (i = 0; i < NUM_SAMPLES; i = i + 1) begin
-            if ((^stimulus_mem[i]) === 1'bx) begin
-                $display("FATAL: stimulus.mem chua duoc nap day du, loi tai index %0d", i);
-                $finish;
-            end
+            if ((^stimulus_mem[i]) === 1'bx)
+                $fatal(1, "stimulus.mem chua duoc nap day du, loi tai index %0d", i);
         end
 
         for (i = 0; i < NUM_OUTPUTS; i = i + 1) begin
-            if ((^expected_mem[i]) === 1'bx) begin
-                $display("FATAL: expected.mem chua duoc nap day du, loi tai index %0d", i);
-                $finish;
-            end
+            if ((^expected_mem[i]) === 1'bx)
+                $fatal(1, "expected.mem chua duoc nap day du, loi tai index %0d", i);
         end
 
         $display("Da nap thanh cong %0d mau stimulus va %0d mau expected.",
                  NUM_SAMPLES, NUM_OUTPUTS);
 
+        // Open output file in write mode (overwrite previous simulation result).
+        output_fd = $fopen(OUTPUT_FILE, "w");
+        if (output_fd == 0)
+            $fatal(1, "Khong tao/mo duoc rtl_output.mem: %0s", OUTPUT_FILE);
+
+        $display("File ket qua RTL: %0s", OUTPUT_FILE);
+
         // Hold reset for five clock cycles; release on a falling edge.
         repeat (5) @(negedge clk);
         rst_n = 1'b1;
 
-        // Drive input data on falling edges to avoid a race with DUT.
+        // Drive input data on falling edges to avoid a race with the DUT.
         for (i = 0; i < NUM_SAMPLES; i = i + 1) begin
             @(negedge clk);
             valid_in = 1'b1;
@@ -161,19 +170,26 @@ module tb_cic_decimator;
             timeout_count = timeout_count + 1;
         end
 
+        // Allow the output monitor to finish its current event before closing.
+        #2;
+        $fclose(output_fd);
+        output_fd = 0;
+
         $display("===============================================");
         $display("Tong so mau dau ra: %0d / %0d", out_idx, NUM_OUTPUTS);
         $display("Tong so loi: %0d", error_count);
+        $display("Da ghi ket qua vao rtl_output.mem");
 
         if (out_idx != NUM_OUTPUTS)
-            $display("KET LUAN: TIMEOUT - khong nhan du mau dau ra.");
-        else if (error_count == 0)
+            $fatal(1, "FAIL: TIMEOUT - chi nhan %0d/%0d mau dau ra.", out_idx, NUM_OUTPUTS);
+        else if (error_count != 0)
+            $fatal(1, "FAIL: Co %0d loi mismatch/unknown.", error_count);
+        else begin
             $display("KET LUAN: PASS - Tat ca mau dau ra khop expected.mem.");
-        else
-            $display("KET LUAN: FAIL - Co mau dau ra khong khop expected.mem.");
-
-        $display("===============================================");
-        $finish;
+            $display("KET QUA: %0d/%0d mau da duoc ghi.", out_idx, NUM_OUTPUTS);
+            $display("===============================================");
+            $finish;
+        end
     end
 
 endmodule

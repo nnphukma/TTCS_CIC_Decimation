@@ -1,0 +1,66 @@
+CIC DECIMATOR - SINGLE-TONE V2 ANALYSIS
+========================================
+
+Configuration
+-------------
+Input sample rate             : 1000000 Hz
+Decimation factor R            : 16
+CIC stages N                   : 4
+Differential delay M           : 1
+Input/output width             : 12/12 bits
+Output sample rate             : 62500 Hz
+Input samples                  : 5000
+RTL output samples             : 312
+Input tone frequency           : 9033.203125000 Hz
+Input tone amplitude (nominal) : 1000.000 LSB
+FFT length                     : 256
+Fundamental FFT bin             : 37
+
+RTL vs ideal CIC
+----------------
+CIC FIR-equivalent length      : 61 input samples
+Settling output samples skipped: 3
+Settled samples compared       : 309
+RTL == floor(ideal)             : 309/309
+Maximum mismatch vs floor      : 0.000000 LSB
+Mean RTL - ideal                : -0.506857270 LSB
+RMS RTL - ideal                 : 0.567794366 LSB
+
+FFT amplitude response
+----------------------
+Theoretical CIC gain             : 0.871215266681
+Theoretical CIC gain             : -1.197490457 dB
+Theoretical output amplitude     : 871.215266681 LSB
+Measured FFT fundamental         : 871.233096191 LSB
+Measured gain                    : 0.871233096191
+Measured gain                    : -1.197312701 dB
+Amplitude difference             : 0.017829510 LSB
+
+FFT quality metrics
+-------------------
+SNR                              : 67.279380 dB
+SINAD                            : 67.276692 dB
+SFDR                             : 77.497894 dBc
+THD (2nd and 3rd in-band)        : -99.362938 dB
+Largest non-fundamental spur     : bin 15
+Largest spur frequency           : 3662.109375000 Hz
+Largest spur amplitude           : 0.116208980 LSB
+Largest spur relative level      : -77.497894 dBc
+Harmonic bins included in THD    : [74, 111]
+
+Metric conventions
+------------------
+- Rectangular window; coherent sampling (256 samples, bin 37).
+- DC excluded from AC SNR/SINAD/SFDR calculations.
+- SNR excludes fundamental and in-band 2nd/3rd harmonic bins.
+- SINAD includes all non-DC, non-fundamental bins.
+- THD includes the 2nd and 3rd harmonics within output Nyquist.
+- SFDR compares the fundamental with the largest other non-DC FFT bin.
+- These metrics describe this specific quantized single-tone V2 test, not
+  a universal CIC performance limit.
+
+Files
+-----
+fft_spectrum.csv : one-sided FFT spectrum
+fft_spectrum.png : FFT plot in dBc
+rtl_vs_ideal.csv : sample-by-sample RTL/ideal comparison
